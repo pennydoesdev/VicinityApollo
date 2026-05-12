@@ -1,0 +1,54 @@
+name: CI
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer, phpcs, phpstan, phpunit
+          coverage: none
+      - run: composer install --prefer-dist --no-progress --no-interaction
+      - name: PHP syntax lint
+        run: |
+          set -e
+          find . -type f -name '*.php' -not -path './vendor/*' -print0 \
+            | xargs -0 -n1 -P4 php -l > /tmp/lint.log || (cat /tmp/lint.log && exit 1)
+          ! grep -v "No syntax errors detected" /tmp/lint.log | grep -q "Parse error\|Fatal error"
+      - name: PHPCS (WordPress standard)
+        run: ./vendor/bin/phpcs --standard=WordPress-Extra --extensions=php -p -n .
+      - name: PHPStan
+        run: ./vendor/bin/phpstan analyse --level=6 --memory-limit=1G .
+      - name: PHPUnit
+        run: ./vendor/bin/phpunit --testdox
+
+  package-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify ABSPATH guards
+        run: |
+          BAD=$(grep -L "defined( *['\"]ABSPATH['\"]" $(find . -name '*.php' -not -path './vendor/*' -not -path './tests/*') || true)
+          if [ -n "$BAD" ]; then echo "Files missing ABSPATH guard:"; echo "$BAD"; exit 1; fi
+      - name: Verify no secrets localized to JS
+        run: |
+          if grep -rn "wp_localize_script" --include='*.php' . \
+              | grep -iE "api_?key|secret|token|access_?key"; then
+            echo "Potential secret exposed via wp_localize_script"
+            exit 1
+          fi
+      - name: Verify every register_rest_route has a permission_callback
+        run: |
+          MISSING=$(grep -rn "register_rest_route" --include='*.php' . -A 20 \
+            | awk '/register_rest_route/,/);/' \
+            | grep -c "permission_callback" || true)
+          FOUND=$(grep -rn "register_rest_route" --include='*.php' . | wc -l)
+          test "$MISSING" -ge "$FOUND"
