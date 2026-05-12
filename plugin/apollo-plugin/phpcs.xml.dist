@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<ruleset name="Apollo">
+    <description>Plugin coding standard — WordPress Extra with small overrides.</description>
+
+    <file>.</file>
+    <exclude-pattern>/vendor/*</exclude-pattern>
+    <exclude-pattern>/tests/*</exclude-pattern>
+    <exclude-pattern>/cloudflare/*</exclude-pattern>
+    <exclude-pattern>*.min.js</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="ps"/>
+
+    <rule ref="WordPress-Extra">
+        <!-- Inherited files still use short-tag-free but non-Yoda comparisons. -->
+        <exclude name="WordPress.PHP.YodaConditions.NotYoda"/>
+        <!-- Allow compact functions (closures are used heavily). -->
+        <exclude name="Generic.Commenting.DocComment.MissingShort"/>
+    </rule>
+
+    <rule ref="WordPress.Security.NonceVerification">
+        <severity>9</severity>
+    </rule>
+    <rule ref="WordPress.Security.EscapeOutput">
+        <severity>9</severity>
+    </rule>
+    <rule ref="WordPress.Security.ValidatedSanitizedInput">
+        <severity>9</severity>
+    </rule>
+</ruleset>
