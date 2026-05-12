@@ -1,0 +1,25 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 6
+    paths:
+        - includes
+        - security
+        - modules
+        - integrations
+        - public
+        - apollo-plugin.php
+        - uninstall.php
+    excludePaths:
+        - tests/*
+        - vendor/*
+        - cloudflare/*
+    ignoreErrors:
+        # Inherited modules pre-date strict typing; gradually tighten.
+        - identifier: argument.type
+          paths:
+            - modules/elections/*
+            - modules/video/*
+            - modules/audio/*
+            - modules/editorial/*
